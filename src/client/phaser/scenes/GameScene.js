@@ -7,7 +7,14 @@ class GameScene extends Phaser.Scene {
         super({ key: "GameScene" });
     }
 
-    init() {}
+    init() {
+        this.movement = {
+            right: false,
+            left: false,
+            up: false,
+            down: false
+        };
+    }
 
     preload() {
         this.load.image("player", playerAsset);
@@ -34,6 +41,24 @@ class GameScene extends Phaser.Scene {
                 }
             });
 
+            this.socket.on("playerMoved", playerInfo => {
+                if (this.socket.id === playerInfo.playerId) {
+                    this.player.setPosition(
+                        playerInfo.position.x,
+                        playerInfo.position.y
+                    );
+                } else {
+                    this.enemies.getChildren().forEach(enemy => {
+                        if (enemy.playerId === playerInfo.playerId) {
+                            enemy.setPosition(
+                                playerInfo.position.x,
+                                playerInfo.position.y
+                            );
+                        }
+                    });
+                }
+            });
+
             this.socket.on("disconnect", playerId => {
                 this.enemies.getChildren().forEach(enemy => {
                     if (enemy.playerId === playerId) {
@@ -42,20 +67,54 @@ class GameScene extends Phaser.Scene {
                 });
             });
         });
+        setInterval(() => {
+            this.socket.emit("movement", this.movement);
+        }, 1000 / 60);
+        this.cursors = this.input.keyboard.createCursorKeys();
     }
 
-    update(time, delta) {}
+    update(time, delta) {
+        this.handleMovement();
+    }
+
+    handleMovement() {
+        if (this.cursors.left.isDown) {
+            this.movement.left = true;
+        } else if (this.cursors.right.isDown) {
+            this.movement.right = true;
+        }
+
+        if (this.cursors.up.isDown) {
+            this.movement.up = true;
+        } else if (this.cursors.down.isDown) {
+            this.movement.down = true;
+        }
+
+        if (this.cursors.left.isUp) {
+            this.movement.left = false;
+        }
+        if (this.cursors.right.isUp) {
+            this.movement.right = false;
+        }
+
+        if (this.cursors.up.isUp) {
+            this.movement.up = false;
+        }
+        if (this.cursors.down.isUp) {
+            this.movement.down = false;
+        }
+    }
 
     addPlayer(playerInfo) {
         this.player = this.physics.add
-            .sprite(playerInfo.x, playerInfo.y, "player")
+            .sprite(playerInfo.position.x, playerInfo.position.y, "player")
             .setScale(0.5, 0.5);
         this.player.setTint(0x1c6ced);
     }
 
     addEnemyPlayer(playerInfo) {
         const enemy = this.add
-            .image(playerInfo.x, playerInfo.y, "player")
+            .image(playerInfo.position.x, playerInfo.position.y, "player")
             .setScale(0.5, 0.5);
         enemy.playerId = playerInfo.playerId;
         enemy.setTint(0xe50404);
