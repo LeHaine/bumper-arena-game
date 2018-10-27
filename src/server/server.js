@@ -9,11 +9,11 @@ let players = {};
 let playerCount = 0;
 
 const speedPerTick = 2.5;
-const hitMagnitude = 25;
+const knockbackMagnitude = 100;
 
 const onConnect = socket => {
     let player = {
-        playerId: socket.id,
+        id: socket.id,
         position: {
             x: Math.floor(Math.random() * 500) + 50,
             y: Math.floor(Math.random() * 500) + 50
@@ -23,7 +23,8 @@ const onConnect = socket => {
         target: {
             x: 0,
             y: 0
-        }
+        },
+        knockback: false
     };
     playerCount++;
     logger.debug(
@@ -57,11 +58,13 @@ const onMovement = (mousePos, id) => {
         x: Math.round(mousePos.x),
         y: Math.round(mousePos.y)
     };
-    players[id].target = roundedMousePos;
-    players[id].angle = MathUtils.calcAngle(
-        players[id].position,
-        roundedMousePos
-    );
+    if (!players[id].knockback) {
+        players[id].target = roundedMousePos;
+        players[id].angle = MathUtils.calcAngle(
+            players[id].position,
+            players[id].target
+        );
+    }
 };
 
 const onDisconnect = id => {
@@ -77,8 +80,8 @@ const movePlayer = player => {
     let dx = player.target.x - player.position.x;
     let dy = player.target.y - player.position.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
-    let newX = 0;
-    let newY = 0;
+    let newX = player.position.x;
+    let newY = player.position.y;
     if (dist > speedPerTick) {
         let ratio = speedPerTick / dist;
         let xDiff = ratio * dx;
@@ -88,6 +91,7 @@ const movePlayer = player => {
     } else {
         newX = player.target.x;
         newY = player.target.y;
+        player.knockback = false;
     }
 
     player.position = { x: newX, y: newY };
@@ -96,10 +100,10 @@ const movePlayer = player => {
 const checkCollisions = player => {
     let collisions = [];
     Object.keys(players).forEach(id => {
-        if (id !== player.playerId) {
-            let collided = MathUtils.intersects(player, players[id]);
+        if (id !== player.id) {
+            let intersected = MathUtils.intersects(player, players[id]);
 
-            if (collided) {
+            if (intersected) {
                 let collision = {
                     bodyA: player,
                     bodyB: players[id]
@@ -110,7 +114,7 @@ const checkCollisions = player => {
     });
 
     collisions.forEach(collision => {
-        logger.debug(JSON.stringify(collision));
+        // TODO process collisions
     });
 };
 

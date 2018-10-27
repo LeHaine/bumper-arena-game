@@ -38,26 +38,26 @@ class GameScene extends Phaser.Scene {
                 });
             });
             this.socket.on("newEnemyPlayer", playerInfo => {
-                if (this.socket.id !== playerInfo.playerId) {
+                if (this.socket.id !== playerInfo.id) {
                     this.addEnemyPlayer(playerInfo);
                 }
             });
 
             this.socket.on("playerMoved", playerInfo => {
-                if (this.socket.id === playerInfo.playerId) {
+                if (this.socket.id === playerInfo.id) {
                     this.moveSprite(this.player, playerInfo);
                 } else {
                     this.enemies.getChildren().forEach(enemy => {
-                        if (enemy.playerId === playerInfo.playerId) {
+                        if (enemy.id === playerInfo.id) {
                             this.moveSprite(enemy, playerInfo);
                         }
                     });
                 }
             });
 
-            this.socket.on("disconnect", playerId => {
+            this.socket.on("disconnect", id => {
                 this.enemies.getChildren().forEach(enemy => {
-                    if (enemy.playerId === playerId) {
+                    if (enemy.id === id) {
                         enemy.destroy();
                     }
                 });
@@ -77,22 +77,24 @@ class GameScene extends Phaser.Scene {
     addPlayer(playerInfo) {
         this.player = this.add
             .sprite(playerInfo.position.x, playerInfo.position.y, "player")
-            .setScale(0.5, 0.5);
+            .setScale(0.5, 0.5)
+            .setRotation(0);
         this.player.setTint(0x1c6ced);
     }
 
     addEnemyPlayer(playerInfo) {
         const enemy = this.add
             .sprite(playerInfo.position.x, playerInfo.position.y, "player")
-            .setScale(0.5, 0.5);
-        enemy.playerId = playerInfo.playerId;
+            .setScale(0.5, 0.5)
+            .setRotation(0);
+        enemy.id = playerInfo.id;
         enemy.setTint(0xe50404);
         this.enemies.add(enemy);
     }
 
     moveSprite(sprite, playerInfo) {
         sprite.setPosition(playerInfo.position.x, playerInfo.position.y);
-        sprite.setRotation(toRadians(playerInfo.angle));
+        sprite.setRotation(toRadians(playerInfo.angle + 90));
     }
 }
 
