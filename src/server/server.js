@@ -73,7 +73,7 @@ const onDisconnect = id => {
     io.emit("disconnect", id);
 };
 
-const tickPlayer = player => {
+const movePlayer = player => {
     let dx = player.target.x - player.position.x;
     let dy = player.target.y - player.position.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
@@ -91,6 +91,32 @@ const tickPlayer = player => {
     }
 
     player.position = { x: newX, y: newY };
+};
+
+const checkCollisions = player => {
+    let collisions = [];
+    Object.keys(players).forEach(id => {
+        if (id !== player.playerId) {
+            let collided = MathUtils.intersects(player, players[id]);
+
+            if (collided) {
+                let collision = {
+                    bodyA: player,
+                    bodyB: players[id]
+                };
+                collisions.push(collision);
+            }
+        }
+    });
+
+    collisions.forEach(collision => {
+        logger.debug(JSON.stringify(collision));
+    });
+};
+
+const tickPlayer = player => {
+    movePlayer(player);
+    checkCollisions(player);
 };
 
 const updatePhysics = () => {

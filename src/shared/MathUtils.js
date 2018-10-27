@@ -22,7 +22,19 @@ const toRadians = degrees => {
     return degrees * (Math.PI / 180);
 };
 
+const intersects = (circle, circle2) => {
+    let dist =
+        Math.sqrt(circle.position.x - circle2.position.x) +
+        Math.sqrt(circle.position.y - circle2.position.y);
+    let radius = Math.sqrt(circle.radius + circle2.radius);
+    if (dist <= radius) {
+        return true;
+    }
+    return false;
+};
+
 module.exports.calcAngle = calcAngle;
 module.exports.toDegrees = toDegrees;
 module.exports.toRadians = toRadians;
 module.exports.moveTowardsPoint = moveTowardsPoint;
+module.exports.intersects = intersects;
