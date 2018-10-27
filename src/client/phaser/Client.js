@@ -6,12 +6,6 @@ const config = {
     width: 800,
     height: 600,
     parent: "content",
-    physics: {
-        default: "arcade",
-        arcade: {
-            debug: false
-        }
-    },
     scene: [GameScene]
 };
 

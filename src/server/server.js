@@ -3,11 +3,14 @@ const app = express();
 const server = require("http").Server(app);
 const io = require("socket.io").listen(server);
 const Matter = require("matter-js");
+const logger = require("./logger");
+const MathUtils = require("../shared/MathUtils");
 
 const Engine = Matter.Engine;
 const World = Matter.World;
 const Bodies = Matter.Bodies;
 const Body = Matter.Body;
+const Events = Matter.Events;
 
 let players = {};
 let playerCount = 0;
@@ -16,19 +19,25 @@ let playerCount = 0;
 let engine = Engine.create();
 let world = engine.world;
 
+const speedPerTick = 2.5;
+const hitMagnitude = 25;
+
 const onConnect = socket => {
-    players[socket.id] = {
+    let player = {
         playerId: socket.id,
         body: Bodies.circle(
             Math.floor(Math.random() * 500) + 50,
             Math.floor(Math.random() * 500) + 50,
-            32
+            16,
+            { label: socket.id }
         ),
-        lastTimeMoved: new Date().getTime()
+        target: {
+            x: 0,
+            y: 0
+        }
     };
     playerCount++;
-    let player = players[socket.id];
-    console.log(
+    logger.debug(
         "Client " +
             socket.id +
             " connected at " +
@@ -40,17 +49,17 @@ const onConnect = socket => {
     );
     World.add(world, player.body);
 
-    let playerInfo = getPlayerInfo(players[socket.id]);
+    let playersInfo = getPlayersInfo();
+    socket.emit("currentPlayers", playersInfo);
 
+    players[socket.id] = player;
+
+    let playerInfo = getPlayerInfo(players[socket.id]);
     socket.emit("newPlayer", playerInfo);
     socket.broadcast.emit("newEnemyPlayer", playerInfo);
 
-    let playersInfo = getPlayersInfo();
-
-    socket.emit("currentPlayers", playersInfo);
-
-    socket.on("movement", movement => {
-        onMovement(movement, socket.id);
+    socket.on("movement", mousePos => {
+        onMovement(mousePos, socket.id);
     });
 
     socket.on("disconnect", () => {
@@ -58,52 +67,35 @@ const onConnect = socket => {
     });
 };
 
-const onMovement = (movement, id) => {
-    let currentTime = new Date().getTime();
-    let diff = currentTime - players[id].lastTimeMoved;
-    if (diff < 1000 / 60) {
-        return;
-    }
-    players[id].lastTimeMoved = currentTime;
+const onMovement = (mousePos, id) => {
     let playerBody = players[id].body;
-    let moved = false;
-    if (movement.left) {
-        moved = true;
-        Body.translate(playerBody, { x: -5, y: 0 });
-    } else if (movement.right) {
-        moved = true;
-        Body.translate(playerBody, { x: 5, y: 0 });
-    }
-    if (movement.up) {
-        moved = true;
-        Body.translate(playerBody, { x: 0, y: -5 });
-    } else if (movement.down) {
-        moved = true;
-        Body.translate(playerBody, { x: 0, y: 5 });
-    }
-    let playerInfo = getPlayerInfo(players[id]);
-    if (moved) {
-        io.emit("playerMoved", playerInfo);
-    }
+    let roundedMousePos = {
+        x: Math.round(mousePos.x),
+        y: Math.round(mousePos.y)
+    };
+    players[id].target = roundedMousePos;
+    let angle = MathUtils.calcAngle(playerBody.position, roundedMousePos);
+    Body.setAngle(playerBody, angle);
 };
 
 const onDisconnect = id => {
     delete players[id];
     playerCount--;
-    console.log(
+    logger.debug(
         "Client " + id + " disconnected. Total players: " + playerCount
     );
     io.emit("disconnect", id);
 };
 
-const updatePhysics = () => {
-    Engine.update(engine);
-};
-
 const getPlayerInfo = player => {
+    if (!player) {
+        return;
+    }
     let playerInfo = {
         playerId: player.playerId,
-        position: player.body.position
+        position: player.body.position,
+        angle: player.body.angle,
+        velocity: player.body.velocity
     };
 
     return playerInfo;
@@ -112,21 +104,77 @@ const getPlayerInfo = player => {
 const getPlayersInfo = () => {
     let playersInfo = {};
     Object.keys(players).forEach(id => {
-        playersInfo[id] = {
-            playerId: players[id].playerId,
-            position: players[id].body.position
-        };
+        playersInfo[id] = getPlayerInfo(players[id]);
     });
     return playersInfo;
 };
 
+const tickPlayer = player => {
+    let dx = player.target.x - player.body.position.x;
+    let dy = player.target.y - player.body.position.y;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    let newX = 0;
+    let newY = 0;
+    if (dist > speedPerTick) {
+        let ratio = speedPerTick / dist;
+        let xDiff = ratio * dx;
+        let yDiff = ratio * dy;
+        newX = xDiff + player.body.position.x;
+        newY = yDiff + player.body.position.y;
+    } else {
+        newX = player.target.x;
+        newY = player.target.y;
+    }
+
+    Body.setPosition(player.body, { x: newX, y: newY });
+};
+
+const updatePhysics = () => {
+    Engine.update(engine);
+    Object.keys(players).forEach(id => {
+        tickPlayer(players[id]);
+    });
+};
+
+const sendUpdates = () => {
+    Object.keys(players).forEach(id => {
+        let playerInfo = getPlayerInfo(players[id]);
+        io.emit("playerMoved", playerInfo);
+    });
+};
+
+const initPhysicsEngine = () => {
+    engine.world.gravity.y = 0;
+    engine.world.gravity.x = 0;
+
+    Events.on(engine, "collisionStart", event => {
+        let pairs = event.pairs;
+        pairs.forEach(pairs => {
+            let bodyA = pairs.bodyA;
+            let bodyB = pairs.bodyB;
+            let angle = bodyA.angle;
+
+            Body.translate(
+                bodyA,
+                MathUtils.moveTowardsPoint(-angle, hitMagnitude)
+            );
+            Body.translate(
+                bodyB,
+                MathUtils.moveTowardsPoint(angle, hitMagnitude * 2)
+            );
+        });
+    });
+
+    logger.info("Physics engine running...");
+};
+
 io.on("connection", onConnect);
+
+initPhysicsEngine();
+setInterval(updatePhysics, 1000 / 60);
+setInterval(sendUpdates, 40);
 
 app.set("port", 8080);
 server.listen(app.get("port"), function() {
-    console.log(`Listening on ${server.address().port}`);
-    engine.world.gravity.y = 0;
-    engine.world.gravity.x = 0;
-    setInterval(updatePhysics, 1000 / 60);
-    console.log("Physics engine running...");
+    logger.info(`Listening on ${server.address().port}`);
 });

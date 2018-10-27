@@ -1,6 +1,11 @@
 import Phaser from "phaser";
 import io from "socket.io-client";
 import playerAsset from "../../assets/player.png";
+import {
+    toRadians,
+    calcAngle,
+    moveTowardsPoint
+} from "../../../shared/MathUtils";
 
 class GameScene extends Phaser.Scene {
     constructor() {
@@ -8,12 +13,8 @@ class GameScene extends Phaser.Scene {
     }
 
     init() {
-        this.movement = {
-            right: false,
-            left: false,
-            up: false,
-            down: false
-        };
+        this.lastEmit = 0;
+        this.player = null;
     }
 
     preload() {
@@ -22,8 +23,9 @@ class GameScene extends Phaser.Scene {
 
     create() {
         this.socket = io("http://localhost:8080");
-        this.enemies = this.physics.add.group();
+        this.enemies = this.add.group();
         this.socket.on("connect", () => {
+            this.connected = true;
             this.socket.on("newPlayer", playerInfo => {
                 this.addPlayer(playerInfo);
             });
@@ -43,17 +45,11 @@ class GameScene extends Phaser.Scene {
 
             this.socket.on("playerMoved", playerInfo => {
                 if (this.socket.id === playerInfo.playerId) {
-                    this.player.setPosition(
-                        playerInfo.position.x,
-                        playerInfo.position.y
-                    );
+                    this.moveSprite(this.player, playerInfo);
                 } else {
                     this.enemies.getChildren().forEach(enemy => {
                         if (enemy.playerId === playerInfo.playerId) {
-                            enemy.setPosition(
-                                playerInfo.position.x,
-                                playerInfo.position.y
-                            );
+                            this.moveSprite(enemy, playerInfo);
                         }
                     });
                 }
@@ -67,46 +63,19 @@ class GameScene extends Phaser.Scene {
                 });
             });
         });
-        setInterval(() => {
-            this.socket.emit("movement", this.movement);
-        }, 1000 / 60);
-        this.cursors = this.input.keyboard.createCursorKeys();
     }
 
     update(time, delta) {
-        this.handleMovement();
-    }
-
-    handleMovement() {
-        if (this.cursors.left.isDown) {
-            this.movement.left = true;
-        } else if (this.cursors.right.isDown) {
-            this.movement.right = true;
-        }
-
-        if (this.cursors.up.isDown) {
-            this.movement.up = true;
-        } else if (this.cursors.down.isDown) {
-            this.movement.down = true;
-        }
-
-        if (this.cursors.left.isUp) {
-            this.movement.left = false;
-        }
-        if (this.cursors.right.isUp) {
-            this.movement.right = false;
-        }
-
-        if (this.cursors.up.isUp) {
-            this.movement.up = false;
-        }
-        if (this.cursors.down.isUp) {
-            this.movement.down = false;
+        if (this.player) {
+            this.socket.emit("movement", {
+                x: this.input.mousePointer.x,
+                y: this.input.mousePointer.y
+            });
         }
     }
 
     addPlayer(playerInfo) {
-        this.player = this.physics.add
+        this.player = this.add
             .sprite(playerInfo.position.x, playerInfo.position.y, "player")
             .setScale(0.5, 0.5);
         this.player.setTint(0x1c6ced);
@@ -114,11 +83,16 @@ class GameScene extends Phaser.Scene {
 
     addEnemyPlayer(playerInfo) {
         const enemy = this.add
-            .image(playerInfo.position.x, playerInfo.position.y, "player")
+            .sprite(playerInfo.position.x, playerInfo.position.y, "player")
             .setScale(0.5, 0.5);
         enemy.playerId = playerInfo.playerId;
         enemy.setTint(0xe50404);
         this.enemies.add(enemy);
+    }
+
+    moveSprite(sprite, playerInfo) {
+        sprite.setPosition(playerInfo.position.x, playerInfo.position.y);
+        sprite.setRotation(toRadians(playerInfo.angle));
     }
 }
 
