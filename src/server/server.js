@@ -8,8 +8,11 @@ const MathUtils = require("../shared/MathUtils");
 let players = {};
 let playerCount = 0;
 
+let sockets = {};
+
 const speedPerTick = 2.5;
-const knockbackMagnitude = 100;
+const knockbackMagnitude = 15;
+const maxHeartbeatInterval = 5000;
 
 const onConnect = socket => {
     let player = {
@@ -24,7 +27,8 @@ const onConnect = socket => {
             x: 0,
             y: 0
         },
-        knockback: false
+        knockback: false,
+        lastHeartbeat: new Date().getTime()
     };
     playerCount++;
     logger.debug(
@@ -40,6 +44,7 @@ const onConnect = socket => {
     socket.emit("currentPlayers", players);
 
     players[socket.id] = player;
+    sockets[socket.id] = socket;
 
     socket.emit("newPlayer", players[socket.id]);
     socket.broadcast.emit("newEnemyPlayer", players[socket.id]);
@@ -49,7 +54,7 @@ const onConnect = socket => {
     });
 
     socket.on("disconnect", () => {
-        onDisconnect(socket.id);
+        onDisconnect(socket);
     });
 };
 
@@ -58,6 +63,7 @@ const onMovement = (mousePos, id) => {
         x: Math.round(mousePos.x),
         y: Math.round(mousePos.y)
     };
+    players[id].lastHeartbeat = new Date().getTime();
     if (!players[id].knockback) {
         players[id].target = roundedMousePos;
         players[id].angle = MathUtils.calcAngle(
@@ -67,13 +73,14 @@ const onMovement = (mousePos, id) => {
     }
 };
 
-const onDisconnect = id => {
+const onDisconnect = socket => {
+    let id = socket.id;
     delete players[id];
     playerCount--;
     logger.debug(
         "Client " + id + " disconnected. Total players: " + playerCount
     );
-    io.emit("disconnect", id);
+    io.emit("playerDisconnect", id);
 };
 
 const movePlayer = player => {
@@ -105,20 +112,30 @@ const checkCollisions = player => {
 
             if (intersected) {
                 let collision = {
-                    bodyA: player,
-                    bodyB: players[id]
+                    bodyA: { player: player, headOn: false },
+                    bodyB: { player: players[id], headOn: false }
                 };
+
+                let angleDiff = Math.abs(
+                    collision.bodyA.player.angle - collision.bodyB.player.angle
+                );
+                collision.bodyA.headOn = true;
+                if (angleDiff < 90) {
+                    collision.bodyB.headOn = true;
+                }
                 collisions.push(collision);
             }
         }
     });
 
-    collisions.forEach(collision => {
-        // TODO process collisions
-    });
+    collisions.forEach(collision => {});
 };
 
 const tickPlayer = player => {
+    if (player.lastHeartbeat < new Date().getTime() - maxHeartbeatInterval) {
+        sockets[player.id].emit("kick", "Timed out");
+        sockets[player.id].disconnect();
+    }
     movePlayer(player);
     checkCollisions(player);
 };

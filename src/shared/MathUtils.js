@@ -33,8 +33,20 @@ const intersects = (circle, circle2) => {
     return false;
 };
 
+const calcOppositeAngle = angle => {
+    let newAngle = angle;
+    if (angle >= 0 && angle < 180) {
+        newAngle += 180;
+    } else if (angle >= 180) {
+        newAngle -= 180;
+    }
+
+    return newAngle;
+};
+
 module.exports.calcAngle = calcAngle;
 module.exports.toDegrees = toDegrees;
 module.exports.toRadians = toRadians;
 module.exports.moveTowardsPoint = moveTowardsPoint;
 module.exports.intersects = intersects;
+module.exports.calcOppositeAngle = calcOppositeAngle;

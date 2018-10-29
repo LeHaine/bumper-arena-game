@@ -15,6 +15,7 @@ class GameScene extends Phaser.Scene {
     init() {
         this.lastEmit = 0;
         this.player = null;
+        this.connected = false;
     }
 
     preload() {
@@ -25,6 +26,9 @@ class GameScene extends Phaser.Scene {
         this.socket = io("http://localhost:8080");
         this.enemies = this.add.group();
         this.socket.on("connect", () => {
+            if (this.connected) {
+                this.scene.restart();
+            }
             this.connected = true;
             this.socket.on("newPlayer", playerInfo => {
                 this.addPlayer(playerInfo);
@@ -55,7 +59,7 @@ class GameScene extends Phaser.Scene {
                 }
             });
 
-            this.socket.on("disconnect", id => {
+            this.socket.on("playerDisconnect", id => {
                 this.enemies.getChildren().forEach(enemy => {
                     if (enemy.id === id) {
                         enemy.destroy();
