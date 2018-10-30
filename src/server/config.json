@@ -1,0 +1,6 @@
+{
+    "port": 8080,
+    "maxHeartbeatInterval": 5000,
+    "speedPerTick": 2.5,
+    "forceMagnitude": 10
+}

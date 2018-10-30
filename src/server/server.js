@@ -2,17 +2,27 @@ const express = require("express");
 const app = express();
 const server = require("http").Server(app);
 const io = require("socket.io").listen(server);
+const Matter = require("matter-js");
 const logger = require("./logger");
 const MathUtils = require("../shared/MathUtils");
+const config = require("./config.json");
+
+const Engine = Matter.Engine;
+const Body = Matter.Body;
+const Bodies = Matter.Bodies;
+const Events = Matter.Events;
+const World = Matter.World;
+
+const engine = Engine.create();
+const world = engine.world;
 
 let players = {};
+let bodies = {};
 let playerCount = 0;
 
 let sockets = {};
 
-const speedPerTick = 2.5;
-const knockbackMagnitude = 15;
-const maxHeartbeatInterval = 5000;
+let bodiesToApplyForce = [];
 
 const onConnect = socket => {
     let player = {
@@ -27,9 +37,26 @@ const onConnect = socket => {
             x: 0,
             y: 0
         },
-        knockback: false,
         lastHeartbeat: new Date().getTime()
     };
+
+    let body = Bodies.circle(
+        player.position.x,
+        player.position.y,
+        player.radius,
+        {
+            label: socket.id,
+            restitution: 1,
+            inertia: Infinity,
+            friction: 0,
+            frictionAir: 0
+        }
+    );
+
+    player.position = body.position;
+
+    World.add(world, body);
+
     playerCount++;
     logger.debug(
         "Client " +
@@ -45,119 +72,93 @@ const onConnect = socket => {
 
     players[socket.id] = player;
     sockets[socket.id] = socket;
+    bodies[socket.id] = body;
 
     socket.emit("newPlayer", players[socket.id]);
     socket.broadcast.emit("newEnemyPlayer", players[socket.id]);
 
     socket.on("movement", mousePos => {
-        onMovement(mousePos, socket.id);
+        let roundedMousePos = {
+            x: Math.round(mousePos.x),
+            y: Math.round(mousePos.y)
+        };
+
+        player.lastHeartbeat = new Date().getTime();
+        player.target = roundedMousePos;
+        body.angle = Matter.Vector.angle(player.position, player.target);
+        player.angle = body.angle;
     });
 
     socket.on("disconnect", () => {
-        onDisconnect(socket);
-    });
-};
-
-const onMovement = (mousePos, id) => {
-    let roundedMousePos = {
-        x: Math.round(mousePos.x),
-        y: Math.round(mousePos.y)
-    };
-    players[id].lastHeartbeat = new Date().getTime();
-    if (!players[id].knockback) {
-        players[id].target = roundedMousePos;
-        players[id].angle = MathUtils.calcAngle(
-            players[id].position,
-            players[id].target
+        delete players[socket.id];
+        playerCount--;
+        logger.debug(
+            "Client " +
+                socket.id +
+                " disconnected. Total players: " +
+                playerCount
         );
-    }
-};
-
-const onDisconnect = socket => {
-    let id = socket.id;
-    delete players[id];
-    playerCount--;
-    logger.debug(
-        "Client " + id + " disconnected. Total players: " + playerCount
-    );
-    io.emit("playerDisconnect", id);
+        socket.broadcast.emit("playerDisconnect", socket.id);
+    });
 };
 
 const movePlayer = player => {
-    let dx = player.target.x - player.position.x;
-    let dy = player.target.y - player.position.y;
+    let body = bodies[player.id];
+    let dx = player.target.x - body.position.x;
+    let dy = player.target.y - body.position.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
-    let newX = player.position.x;
-    let newY = player.position.y;
-    if (dist > speedPerTick) {
-        let ratio = speedPerTick / dist;
+
+    if (dist > config.speedPerTick) {
+        let ratio = config.speedPerTick / dist;
         let xDiff = ratio * dx;
         let yDiff = ratio * dy;
-        newX = xDiff + player.position.x;
-        newY = yDiff + player.position.y;
+        Body.setVelocity(body, { x: xDiff, y: yDiff });
     } else {
-        newX = player.target.x;
-        newY = player.target.y;
-        player.knockback = false;
+        Body.setVelocity(body, { x: 0, y: 0 });
     }
-
-    player.position = { x: newX, y: newY };
-};
-
-const checkCollisions = player => {
-    let collisions = [];
-    Object.keys(players).forEach(id => {
-        if (id !== player.id) {
-            let intersected = MathUtils.intersects(player, players[id]);
-
-            if (intersected) {
-                let collision = {
-                    bodyA: { player: player, headOn: false },
-                    bodyB: { player: players[id], headOn: false }
-                };
-
-                let angleDiff = Math.abs(
-                    collision.bodyA.player.angle - collision.bodyB.player.angle
-                );
-                collision.bodyA.headOn = true;
-                if (angleDiff < 90) {
-                    collision.bodyB.headOn = true;
-                }
-                collisions.push(collision);
-            }
-        }
-    });
-
-    collisions.forEach(collision => {});
 };
 
 const tickPlayer = player => {
-    if (player.lastHeartbeat < new Date().getTime() - maxHeartbeatInterval) {
+    if (
+        player.lastHeartbeat <
+        new Date().getTime() - config.maxHeartbeatInterval
+    ) {
         sockets[player.id].emit("kick", "Timed out");
         sockets[player.id].disconnect();
     }
     movePlayer(player);
-    checkCollisions(player);
 };
 
-const updatePhysics = () => {
+const update = () => {
+    Engine.update(engine);
     Object.keys(players).forEach(id => {
         tickPlayer(players[id]);
     });
 };
 
-const sendUpdates = () => {
+const sendClientUpdates = () => {
     Object.keys(players).forEach(id => {
         io.emit("playerMoved", players[id]);
     });
 };
 
+const initPhysicsEngine = () => {
+    engine.world.gravity.y = 0;
+    engine.world.gravity.x = 0;
+    Events.on(engine, "beforeUpdate", event => {
+        bodiesToApplyForce.forEach(body => {});
+    });
+    Events.on(engine, "collisionStart", event => {});
+    logger.info("Physics engine running...");
+};
+
+initPhysicsEngine();
+setInterval(update, 1000 / 60);
+setInterval(sendClientUpdates, 40);
+
 io.on("connection", onConnect);
 
-setInterval(updatePhysics, 1000 / 60);
-setInterval(sendUpdates, 40);
-
-app.set("port", 8080);
-server.listen(app.get("port"), function() {
+app.set("port", config.port);
+server.listen(app.get("port"), () => {
     logger.info(`Listening on ${server.address().port}`);
 });
