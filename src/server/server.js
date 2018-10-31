@@ -12,6 +12,7 @@ const Body = Matter.Body;
 const Bodies = Matter.Bodies;
 const Events = Matter.Events;
 const World = Matter.World;
+const Vector = Matter.Vector;
 
 const engine = Engine.create();
 const world = engine.world;
@@ -21,8 +22,6 @@ let bodies = {};
 let playerCount = 0;
 
 let sockets = {};
-
-let bodiesToApplyForce = [];
 
 const onConnect = socket => {
     let player = {
@@ -37,6 +36,11 @@ const onConnect = socket => {
             x: 0,
             y: 0
         },
+        velocity: {
+            x: 0,
+            y: 0
+        },
+        knockback: false,
         lastHeartbeat: new Date().getTime()
     };
 
@@ -46,14 +50,15 @@ const onConnect = socket => {
         player.radius,
         {
             label: socket.id,
-            restitution: 1,
             inertia: Infinity,
             friction: 0,
-            frictionAir: 0
+            frictionAir: 0,
+            render: { visible: false }
         }
     );
 
     player.position = body.position;
+    player.velocity = body.velocity;
 
     World.add(world, body);
 
@@ -78,19 +83,19 @@ const onConnect = socket => {
     socket.broadcast.emit("newEnemyPlayer", players[socket.id]);
 
     socket.on("movement", mousePos => {
-        let roundedMousePos = {
-            x: Math.round(mousePos.x),
-            y: Math.round(mousePos.y)
-        };
-
         player.lastHeartbeat = new Date().getTime();
-        player.target = roundedMousePos;
-        body.angle = Matter.Vector.angle(player.position, player.target);
+        if (player.knockback) {
+            return;
+        }
+
+        player.target = mousePos;
+        body.angle = Vector.angle(player.position, player.target);
         player.angle = body.angle;
     });
 
     socket.on("disconnect", () => {
         delete players[socket.id];
+        delete bodies[socket.id];
         playerCount--;
         logger.debug(
             "Client " +
@@ -103,25 +108,32 @@ const onConnect = socket => {
 };
 
 const movePlayer = player => {
+    if (!player || !bodies[player.id]) return;
     let body = bodies[player.id];
     let dx = player.target.x - body.position.x;
     let dy = player.target.y - body.position.y;
     let dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist > config.speedPerTick) {
-        let ratio = config.speedPerTick / dist;
+    let tickSpeed = config.speedPerTick;
+    if (player.knockback) {
+        tickSpeed = config.knockbackSpeedperTick;
+    }
+    if (dist > tickSpeed) {
+        let ratio = tickSpeed / dist;
         let xDiff = ratio * dx;
         let yDiff = ratio * dy;
         Body.setVelocity(body, { x: xDiff, y: yDiff });
     } else {
         Body.setVelocity(body, { x: 0, y: 0 });
+        player.knockback = false;
     }
 };
 
 const tickPlayer = player => {
     if (
+        !player ||
         player.lastHeartbeat <
-        new Date().getTime() - config.maxHeartbeatInterval
+            new Date().getTime() - config.maxHeartbeatInterval
     ) {
         sockets[player.id].emit("kick", "Timed out");
         sockets[player.id].disconnect();
@@ -145,16 +157,94 @@ const sendClientUpdates = () => {
 const initPhysicsEngine = () => {
     engine.world.gravity.y = 0;
     engine.world.gravity.x = 0;
-    Events.on(engine, "beforeUpdate", event => {
-        bodiesToApplyForce.forEach(body => {});
-    });
-    Events.on(engine, "collisionStart", event => {});
+
+    const handleCollision = event => {
+        let pairs = event.pairs;
+        pairs.forEach(pair => {
+            let bodyA = pair.bodyA;
+            let bodyB = pair.bodyB;
+            let playerA = players[pair.bodyA.label];
+            let playerB = players[pair.bodyB.label];
+            if (!playerA || !playerB) {
+                return;
+            }
+            playerA.knockback = true;
+            playerB.knockback = true;
+            let angle = Vector.angle(playerA.position, playerB.position);
+            angle = MathUtils.toDegrees(angle);
+            let velocity = { x: 0, y: 0 };
+
+            if (angle <= 22 || angle >= 338) {
+                // top
+                velocity.y = 1;
+            } else if (angle > 22 && angle < 68) {
+                //top right
+                velocity.x = 1;
+                velocity.y = 1;
+            } else if (angle >= 68 && angle <= 112) {
+                // right
+                velocity.x = 1;
+            } else if (angle > 112 && angle < 158) {
+                // bottom right
+                velocity.x = 1;
+                velocity.y = -1;
+            } else if (angle >= 158 && angle <= 202) {
+                // bottom
+                velocity.y = -1;
+            } else if (angle > 202 && angle < 248) {
+                // bottom left
+                velocity.x = -1;
+                velocity.y = -1;
+            } else if (angle >= 248 && angle <= 292) {
+                // left
+                velocity.x = -1;
+            } else if (angle > 292 && angle < 338) {
+                // top left
+                velocity.y = 1;
+                velocity.x = -1;
+            }
+
+            playerA.target = Vector.add(
+                playerA.position,
+                Vector.mult(Vector.neg(velocity), config.knockbackMagnitude)
+            );
+            playerB.target = Vector.add(
+                playerB.position,
+                Vector.mult(velocity, config.knockbackMagnitude)
+            );
+
+            // let angleA = Vector.angle(bodyA.velocity);
+            // let angleB = Vector.angle(bodyB.velocity);
+            // let collisionAngle = Vector.angle(
+            //     playerA.position,
+            //     playerB.position
+            // );
+            // let angleADiff = Math.abs(angleA - collisionAngle);
+            // let angleBDiff = Math.abs(angleB - collisionAngle);
+
+            // let velocity = bodyA.velocity;
+            // if (angleADiff > angleBDiff) {
+            //     velocity = bodyB.velocity;
+            // }
+            // playerA.target = Vector.add(
+            //     playerA.position,
+            //     Vector.mult(Vector.neg(velocity), config.knockbackMagnitude)
+            // );
+            // playerB.target = Vector.add(
+            //     playerB.position,
+            //     Vector.mult(velocity, config.knockbackMagnitude)
+            // );
+        });
+    };
+
+    Events.on(engine, "collisionStart", handleCollision);
+    Events.on(engine, "collisionActive", handleCollision);
     logger.info("Physics engine running...");
 };
 
 initPhysicsEngine();
 setInterval(update, 1000 / 60);
-setInterval(sendClientUpdates, 40);
+setInterval(sendClientUpdates, config.clientUpdateInterval);
 
 io.on("connection", onConnect);
 

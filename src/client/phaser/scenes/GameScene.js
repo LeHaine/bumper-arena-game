@@ -16,6 +16,7 @@ class GameScene extends Phaser.Scene {
         this.lastEmit = 0;
         this.player = null;
         this.connected = false;
+        this.developerMode = true;
     }
 
     preload() {
@@ -28,6 +29,7 @@ class GameScene extends Phaser.Scene {
         this.socket.on("connect", () => {
             if (this.connected) {
                 this.scene.restart();
+                return;
             }
             this.connected = true;
             this.socket.on("newPlayer", playerInfo => {
@@ -60,6 +62,10 @@ class GameScene extends Phaser.Scene {
             });
 
             this.socket.on("playerDisconnect", id => {
+                if (id === this.player.id) {
+                    this.player.destroy();
+                    this.player = null;
+                }
                 this.enemies.getChildren().forEach(enemy => {
                     if (enemy.id === id) {
                         enemy.destroy();
@@ -67,6 +73,8 @@ class GameScene extends Phaser.Scene {
                 });
             });
         });
+
+        this.initDevMode();
     }
 
     update(time, delta) {
@@ -75,6 +83,7 @@ class GameScene extends Phaser.Scene {
                 x: this.input.mousePointer.x,
                 y: this.input.mousePointer.y
             });
+            this.updateDevMode();
         }
     }
 
@@ -84,6 +93,7 @@ class GameScene extends Phaser.Scene {
             .setScale(0.5, 0.5)
             .setRotation(0);
         this.player.setTint(0x1c6ced);
+        this.player.velocity = playerInfo.velocity;
     }
 
     addEnemyPlayer(playerInfo) {
@@ -97,8 +107,27 @@ class GameScene extends Phaser.Scene {
     }
 
     moveSprite(sprite, playerInfo) {
+        if (!sprite || !playerInfo) return;
         sprite.setPosition(playerInfo.position.x, playerInfo.position.y);
         sprite.setRotation(playerInfo.angle + 90);
+        sprite.velocity = playerInfo.velocity;
+    }
+
+    initDevMode() {
+        if (!this.developerMode) return;
+        this.coordsText = this.add.text(300, 15);
+        this.velocityText = this.add.text(300, 30);
+    }
+
+    updateDevMode() {
+        if (!this.developerMode) return;
+
+        this.coordsText.setText(
+            "X: " + this.player.x + ", Y: " + this.player.y
+        );
+        this.velocityText.setText(
+            "Velocity: " + JSON.stringify(this.player.velocity)
+        );
     }
 }
 

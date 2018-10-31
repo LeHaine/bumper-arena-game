@@ -1,6 +1,8 @@
 {
     "port": 8080,
+    "clientUpdateInterval": 40,
     "maxHeartbeatInterval": 5000,
     "speedPerTick": 2.5,
-    "forceMagnitude": 10
+    "knockbackSpeedperTick": 5,
+    "knockbackMagnitude": 50
 }
