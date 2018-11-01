@@ -109,14 +109,15 @@ class GameScene extends Phaser.Scene {
     moveSprite(sprite, playerInfo) {
         if (!sprite || !playerInfo) return;
         sprite.setPosition(playerInfo.position.x, playerInfo.position.y);
-        sprite.setRotation(playerInfo.angle + 90);
+        sprite.setRotation(playerInfo.angle + Math.PI / 2);
         sprite.velocity = playerInfo.velocity;
     }
 
     initDevMode() {
         if (!this.developerMode) return;
-        this.coordsText = this.add.text(300, 15);
-        this.velocityText = this.add.text(300, 30);
+        this.coordsText = this.add.text(10, 10);
+        this.velocityText = this.add.text(10, 25);
+        this.rotation = this.add.text(10, 40);
     }
 
     updateDevMode() {
@@ -128,6 +129,8 @@ class GameScene extends Phaser.Scene {
         this.velocityText.setText(
             "Velocity: " + JSON.stringify(this.player.velocity)
         );
+
+        this.rotation.setText("Rotation: " + this.player.angle);
     }
 }
 
