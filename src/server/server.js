@@ -174,71 +174,49 @@ const initPhysicsEngine = () => {
             angle = MathUtils.toDegrees(angle);
             let velocity = { x: 0, y: 0 };
 
-            if (angle <= 22 || angle >= 338) {
+            if (angle >= -112 && angle <= -68) {
                 // top
                 velocity.y = 1;
-            } else if (angle > 22 && angle < 68) {
-                //top right
-                velocity.x = 1;
+            } else if (angle > -68 && angle < 22) {
+                // top right
+                velocity.x = -1;
                 velocity.y = 1;
-            } else if (angle >= 68 && angle <= 112) {
+            } else if (angle >= -22 && angle <= 22) {
                 // right
-                velocity.x = 1;
-            } else if (angle > 112 && angle < 158) {
+                velocity.x = -1;
+            } else if (angle > 22 && angle < 68) {
                 // bottom right
-                velocity.x = 1;
+                velocity.x = -1;
                 velocity.y = -1;
-            } else if (angle >= 158 && angle <= 202) {
+            } else if (angle >= 68 && angle <= 112) {
                 // bottom
                 velocity.y = -1;
-            } else if (angle > 202 && angle < 248) {
+            } else if (angle > 112 && angle < 158) {
                 // bottom left
-                velocity.x = -1;
+                velocity.x = 1;
                 velocity.y = -1;
-            } else if (angle >= 248 && angle <= 292) {
+            } else if (angle >= 158 || angle <= -158) {
                 // left
-                velocity.x = -1;
-            } else if (angle > 292 && angle < 338) {
+                velocity.x = 1;
+            } else if (angle > -158 && angle < -112) {
                 // top left
                 velocity.y = 1;
-                velocity.x = -1;
+                velocity.x = 1;
             }
 
             playerA.target = Vector.add(
                 playerA.position,
-                Vector.mult(Vector.neg(velocity), config.knockbackMagnitude)
+                Vector.mult(velocity, config.knockbackMagnitude)
             );
             playerB.target = Vector.add(
                 playerB.position,
-                Vector.mult(velocity, config.knockbackMagnitude)
+                Vector.mult(Vector.neg(velocity), config.knockbackMagnitude)
             );
-
-            // let angleA = Vector.angle(bodyA.velocity);
-            // let angleB = Vector.angle(bodyB.velocity);
-            // let collisionAngle = Vector.angle(
-            //     playerA.position,
-            //     playerB.position
-            // );
-            // let angleADiff = Math.abs(angleA - collisionAngle);
-            // let angleBDiff = Math.abs(angleB - collisionAngle);
-
-            // let velocity = bodyA.velocity;
-            // if (angleADiff > angleBDiff) {
-            //     velocity = bodyB.velocity;
-            // }
-            // playerA.target = Vector.add(
-            //     playerA.position,
-            //     Vector.mult(Vector.neg(velocity), config.knockbackMagnitude)
-            // );
-            // playerB.target = Vector.add(
-            //     playerB.position,
-            //     Vector.mult(velocity, config.knockbackMagnitude)
-            // );
         });
     };
 
     Events.on(engine, "collisionStart", handleCollision);
-    Events.on(engine, "collisionActive", handleCollision);
+    //  Events.on(engine, "collisionActive", handleCollision);
     logger.info("Physics engine running...");
 };
 
