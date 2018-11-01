@@ -177,7 +177,7 @@ const initPhysicsEngine = () => {
             if (angle >= -112 && angle <= -68) {
                 // top
                 velocity.y = 1;
-            } else if (angle > -68 && angle < 22) {
+            } else if (angle > -68 && angle < -22) {
                 // top right
                 velocity.x = -1;
                 velocity.y = 1;
