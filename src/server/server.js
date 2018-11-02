@@ -161,8 +161,6 @@ const initPhysicsEngine = () => {
     const handleCollision = event => {
         let pairs = event.pairs;
         pairs.forEach(pair => {
-            let bodyA = pair.bodyA;
-            let bodyB = pair.bodyB;
             let playerA = players[pair.bodyA.label];
             let playerB = players[pair.bodyB.label];
             if (!playerA || !playerB) {
@@ -216,7 +214,6 @@ const initPhysicsEngine = () => {
     };
 
     Events.on(engine, "collisionStart", handleCollision);
-    //  Events.on(engine, "collisionActive", handleCollision);
     logger.info("Physics engine running...");
 };
 
