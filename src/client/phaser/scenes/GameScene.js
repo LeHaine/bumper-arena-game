@@ -1,11 +1,6 @@
 import Phaser from "phaser";
 import io from "socket.io-client";
 import playerAsset from "../../assets/player.png";
-import {
-    toRadians,
-    calcAngle,
-    moveTowardsPoint
-} from "../../../shared/MathUtils";
 
 class GameScene extends Phaser.Scene {
     constructor() {
@@ -93,7 +88,7 @@ class GameScene extends Phaser.Scene {
             .setScale(0.5, 0.5)
             .setRotation(0);
         this.player.setTint(0x1c6ced);
-        this.player.velocity = playerInfo.velocity;
+        this.addSpriteInfoDevMode(this.player, playerInfo);
     }
 
     addEnemyPlayer(playerInfo) {
@@ -110,14 +105,21 @@ class GameScene extends Phaser.Scene {
         if (!sprite || !playerInfo) return;
         sprite.setPosition(playerInfo.position.x, playerInfo.position.y);
         sprite.setRotation(playerInfo.angle + Math.PI / 2);
-        sprite.velocity = playerInfo.velocity;
+        this.addSpriteInfoDevMode(sprite, playerInfo);
     }
 
     initDevMode() {
         if (!this.developerMode) return;
         this.coordsText = this.add.text(10, 10);
         this.velocityText = this.add.text(10, 25);
-        this.rotation = this.add.text(10, 40);
+        this.rotationText = this.add.text(10, 40);
+        this.knockbackText = this.add.text(400, 40);
+    }
+
+    addSpriteInfoDevMode(sprite, playerInfo) {
+        if (!this.developerMode) return;
+        sprite.velocity = playerInfo.velocity;
+        sprite.knockback = playerInfo.knockback;
     }
 
     updateDevMode() {
@@ -129,8 +131,8 @@ class GameScene extends Phaser.Scene {
         this.velocityText.setText(
             "Velocity: " + JSON.stringify(this.player.velocity)
         );
-
-        this.rotation.setText("Rotation: " + this.player.angle);
+        this.rotationText.setText("Rotation: " + this.player.angle);
+        this.knockbackText.setText("Knockbacked: " + this.player.knockback);
     }
 }
 
