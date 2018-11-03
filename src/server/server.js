@@ -89,7 +89,7 @@ const onConnect = socket => {
         }
 
         player.target = mousePos;
-        body.angle = Vector.angle(player.position, player.target);
+        body.angle = Vector.angle(player.position, player.target) + Math.PI / 2;
         player.angle = body.angle;
     });
 
@@ -173,31 +173,31 @@ const initPhysicsEngine = () => {
             let velocity = { x: 0, y: 0 };
 
             if (angle >= -112 && angle <= -68) {
-                // top
+                // N
                 velocity.y = 1;
             } else if (angle > -68 && angle < -22) {
-                // top right
+                // NE
                 velocity.x = -1;
                 velocity.y = 1;
             } else if (angle >= -22 && angle <= 22) {
-                // right
+                // E
                 velocity.x = -1;
             } else if (angle > 22 && angle < 68) {
-                // bottom right
+                // SE
                 velocity.x = -1;
                 velocity.y = -1;
             } else if (angle >= 68 && angle <= 112) {
-                // bottom
+                // S
                 velocity.y = -1;
             } else if (angle > 112 && angle < 158) {
-                // bottom left
+                // SW
                 velocity.x = 1;
                 velocity.y = -1;
             } else if (angle >= 158 || angle <= -158) {
-                // left
+                // W
                 velocity.x = 1;
             } else if (angle > -158 && angle < -112) {
-                // top left
+                // NW
                 velocity.y = 1;
                 velocity.x = 1;
             }

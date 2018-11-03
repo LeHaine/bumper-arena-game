@@ -104,7 +104,7 @@ class GameScene extends Phaser.Scene {
     moveSprite(sprite, playerInfo) {
         if (!sprite || !playerInfo) return;
         sprite.setPosition(playerInfo.position.x, playerInfo.position.y);
-        sprite.setRotation(playerInfo.angle + Math.PI / 2);
+        sprite.setRotation(playerInfo.angle);
         this.addSpriteInfoDevMode(sprite, playerInfo);
     }
 
