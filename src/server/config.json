@@ -2,7 +2,9 @@
     "port": 8080,
     "clientUpdateInterval": 40,
     "maxHeartbeatInterval": 5000,
-    "speedPerTick": 2.5,
+    "speedPerTick": 3,
     "knockbackSpeedperTick": 5,
-    "knockbackMagnitude": 50
+    "knockbackMagnitude": 50,
+    "worldWidth": 2500,
+    "worldHeight": 2500
 }

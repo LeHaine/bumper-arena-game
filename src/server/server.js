@@ -21,11 +21,11 @@ let players = {};
 let bodies = {};
 let playerCount = 0;
 
-let sockets = {};
+let clients = {};
 
-const onConnect = socket => {
+const onConnect = client => {
     let player = {
-        id: socket.id,
+        id: client.id,
         position: {
             x: Math.floor(Math.random() * 500) + 50,
             y: Math.floor(Math.random() * 500) + 50
@@ -49,7 +49,7 @@ const onConnect = socket => {
         player.position.y,
         player.radius,
         {
-            label: socket.id,
+            label: client.id,
             inertia: Infinity,
             friction: 0,
             frictionAir: 0,
@@ -65,7 +65,7 @@ const onConnect = socket => {
     playerCount++;
     logger.debug(
         "Client " +
-            socket.id +
+            client.id +
             " connected at " +
             player.position.x +
             ", " +
@@ -73,16 +73,16 @@ const onConnect = socket => {
             ". Total players: " +
             playerCount
     );
-    socket.emit("currentPlayers", players);
+    client.emit("currentPlayers", players);
 
-    players[socket.id] = player;
-    sockets[socket.id] = socket;
-    bodies[socket.id] = body;
+    players[client.id] = player;
+    clients[client.id] = client;
+    bodies[client.id] = body;
 
-    socket.emit("newPlayer", players[socket.id]);
-    socket.broadcast.emit("newEnemyPlayer", players[socket.id]);
+    client.emit("newPlayer", players[client.id]);
+    client.broadcast.emit("newEnemyPlayer", players[client.id]);
 
-    socket.on("movement", mousePos => {
+    client.on("movement", mousePos => {
         player.lastHeartbeat = new Date().getTime();
         if (player.knockback) {
             return;
@@ -93,17 +93,21 @@ const onConnect = socket => {
         player.angle = body.angle;
     });
 
-    socket.on("disconnect", () => {
-        delete players[socket.id];
-        delete bodies[socket.id];
+    client.on("disconnect", () => {
+        delete players[client.id];
+        delete bodies[client.id];
         playerCount--;
         logger.debug(
             "Client " +
-                socket.id +
+                client.id +
                 " disconnected. Total players: " +
                 playerCount
         );
-        socket.broadcast.emit("playerDisconnect", socket.id);
+        client.broadcast.emit("playerDisconnect", client.id);
+    });
+    client.emit("config", {
+        worldWidth: config.worldWidth,
+        worldHeight: config.worldHeight
     });
 };
 
@@ -127,6 +131,18 @@ const movePlayer = player => {
         Body.setVelocity(body, { x: 0, y: 0 });
         player.knockback = false;
     }
+
+    if (player.position.x > config.worldWidth) {
+        player.position.x = config.worldWidth;
+    } else if (player.position.x < 0) {
+        player.position.x = 0;
+    }
+
+    if (player.position.y > config.worldHeight) {
+        player.position.y = config.worldHeight;
+    } else if (player.position.y < 0) {
+        player.position.y = 0;
+    }
 };
 
 const tickPlayer = player => {
@@ -135,8 +151,8 @@ const tickPlayer = player => {
         player.lastHeartbeat <
             new Date().getTime() - config.maxHeartbeatInterval
     ) {
-        sockets[player.id].emit("kick", "Timed out");
-        sockets[player.id].disconnect();
+        clients[player.id].emit("kick", "Timed out");
+        clients[player.id].disconnect();
     }
     movePlayer(player);
 };
