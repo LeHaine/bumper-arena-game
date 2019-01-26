@@ -5,7 +5,7 @@
     "speedPerTick": 3,
     "knockbackSpeedperTick": 5,
     "knockbackMagnitude": 50,
-    "boostMagnitude": 5,
+    "boostMagnitude": 3,
     "maxBoost": 100,
     "worldWidth": 2500,
     "worldHeight": 2500,
