@@ -11,7 +11,9 @@ class GameScene extends Phaser.Scene {
         this.lastEmit = 0;
         this.player = null;
         this.connected = false;
-        this.developerMode = true;
+        if (__DEV__) {
+            this.developerMode = true;
+        }
     }
 
     preload() {
@@ -99,10 +101,7 @@ class GameScene extends Phaser.Scene {
 
     update(time, delta) {
         if (this.player) {
-            this.socket.emit("movement", {
-                x: this.game.input.activePointer.worldX,
-                y: this.game.input.activePointer.worldY
-            });
+            this.socket.emit("movement", this.getMouseWorldPosition());
 
             if (this.input.activePointer.justDown) {
                 this.socket.emit("boost");
@@ -204,12 +203,15 @@ class GameScene extends Phaser.Scene {
             this.boostText.setText("Boost: " + this.player.boost);
             this.knockbackText.setText("Knockbacked: " + this.player.knockback);
             this.mouseCoords.setText(
-                "MouseX: " +
-                    this.game.input.activePointer.worldX +
-                    ", MouseY: " +
-                    this.game.input.activePointer.worldY
+                "Mouse: " + JSON.stringify(this.getMouseWorldPosition())
             );
         }
+    }
+
+    getMouseWorldPosition() {
+        return this.game.input.activePointer.positionToCamera(
+            this.cameras.main
+        );
     }
 }
 
