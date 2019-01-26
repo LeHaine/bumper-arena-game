@@ -27,8 +27,8 @@ const onConnect = client => {
     let player = {
         id: client.id,
         position: {
-            x: Math.floor(Math.random() * config.worldWidth) + 50,
-            y: Math.floor(Math.random() * config.worldHeight) + 50
+            x: Math.floor(Math.random() * config.worldWidth),
+            y: Math.floor(Math.random() * config.worldHeight)
         },
         boost: config.maxBoost,
         radius: config.playerRadius,
@@ -161,13 +161,13 @@ const movePlayer = player => {
 
 const updateBoost = player => {
     if (player.boosting) {
-        player.boost -= 1;
+        player.boost -= config.boostDepleteRate;
         if (player.boost <= 0) {
             player.boosting = false;
         }
     } else {
         if (player.boost < config.maxBoost) {
-            player.boost += 1 / 10;
+            player.boost += config.boostRegenRate;
         }
         if (player.boost > config.maxBoost) {
             player.boost = config.maxBoost;

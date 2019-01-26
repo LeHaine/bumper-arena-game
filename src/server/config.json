@@ -9,5 +9,7 @@
     "maxBoost": 100,
     "worldWidth": 2500,
     "worldHeight": 2500,
-    "playerRadius": 16
+    "playerRadius": 16,
+    "boostDepleteRate": 1,
+    "boostRegenRate": 0.2
 }
