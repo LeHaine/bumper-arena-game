@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import io from "socket.io-client";
 import playerAsset from "../../assets/player.png";
+import { Grid } from "matter-js";
 
 class GameScene extends Phaser.Scene {
     constructor() {
@@ -27,6 +28,21 @@ class GameScene extends Phaser.Scene {
                 return;
             }
             this.connected = true;
+            this.socket.on("config", config => {
+                this.cameras.main.setBounds(
+                    -500,
+                    -500,
+                    config.worldWidth + 1000,
+                    config.worldHeight + 1000
+                );
+                const grid = this.add.grid(
+                    config.worldWidth / 2,
+                    config.worldHeight / 2,
+                    config.worldWidth,
+                    config.worldHeight
+                );
+                grid.depth = -10;
+            });
             this.socket.on("newPlayer", playerInfo => {
                 this.addPlayer(playerInfo);
             });
@@ -85,8 +101,8 @@ class GameScene extends Phaser.Scene {
     update(time, delta) {
         if (this.player) {
             this.socket.emit("movement", {
-                x: this.input.mousePointer.x,
-                y: this.input.mousePointer.y
+                x: this.game.input.activePointer.worldX,
+                y: this.game.input.activePointer.worldY
             });
 
             if (__DEV__) {
@@ -101,6 +117,7 @@ class GameScene extends Phaser.Scene {
             .setScale(0.5, 0.5)
             .setRotation(0);
         this.player.setTint(0x1c6ced);
+        this.cameras.main.startFollow(this.player);
         if (__DEV__) {
             this.addSpriteInfoDevMode(this.player, playerInfo);
         }
@@ -129,10 +146,25 @@ class GameScene extends Phaser.Scene {
     initDevMode() {
         if (__DEV__) {
             if (!this.developerMode) return;
-            this.coordsText = this.add.text(10, 10);
-            this.velocityText = this.add.text(10, 25);
-            this.rotationText = this.add.text(10, 40);
-            this.knockbackText = this.add.text(400, 40);
+            const textStyle = {
+                fontSize: 18,
+                backgroundColor: "#000"
+            };
+            this.coordsText = this.add
+                .text(10, 10, "", textStyle)
+                .setScrollFactor(0);
+            this.velocityText = this.add
+                .text(10, 30, "", textStyle)
+                .setScrollFactor(0);
+            this.rotationText = this.add
+                .text(10, 50, "", textStyle)
+                .setScrollFactor(0);
+            this.knockbackText = this.add
+                .text(400, 50, "", textStyle)
+                .setScrollFactor(0);
+            this.mouseCoords = this.add
+                .text(10, 70, "", textStyle)
+                .setScrollFactor(0);
         }
     }
 
@@ -156,6 +188,12 @@ class GameScene extends Phaser.Scene {
             );
             this.rotationText.setText("Rotation: " + this.player.angle);
             this.knockbackText.setText("Knockbacked: " + this.player.knockback);
+            this.mouseCoords.setText(
+                "MouseX: " +
+                    this.game.input.activePointer.worldX +
+                    ", MouseY: " +
+                    this.game.input.activePointer.worldY
+            );
         }
     }
 }
