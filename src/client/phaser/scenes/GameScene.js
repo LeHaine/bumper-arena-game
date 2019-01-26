@@ -104,6 +104,12 @@ class GameScene extends Phaser.Scene {
                 y: this.game.input.activePointer.worldY
             });
 
+            if (this.input.activePointer.justDown) {
+                this.socket.emit("boost");
+            } else if (this.input.activePointer.justUp) {
+                this.socket.emit("boostStop");
+            }
+
             if (__DEV__) {
                 this.updateDevMode();
             }
@@ -158,6 +164,12 @@ class GameScene extends Phaser.Scene {
             this.rotationText = this.add
                 .text(10, 50, "", textStyle)
                 .setScrollFactor(0);
+            this.boostingText = this.add
+                .text(600, 50, "", textStyle)
+                .setScrollFactor(0);
+            this.boostText = this.add
+                .text(850, 50, "", textStyle)
+                .setScrollFactor(0);
             this.knockbackText = this.add
                 .text(400, 50, "", textStyle)
                 .setScrollFactor(0);
@@ -172,6 +184,8 @@ class GameScene extends Phaser.Scene {
             if (!this.developerMode) return;
             sprite.velocity = playerInfo.velocity;
             sprite.knockback = playerInfo.knockback;
+            sprite.boost = playerInfo.boost;
+            sprite.boosting = playerInfo.boosting;
         }
     }
 
@@ -186,6 +200,8 @@ class GameScene extends Phaser.Scene {
                 "Velocity: " + JSON.stringify(this.player.velocity)
             );
             this.rotationText.setText("Rotation: " + this.player.angle);
+            this.boostingText.setText("Boosting: " + this.player.boosting);
+            this.boostText.setText("Boost: " + this.player.boost);
             this.knockbackText.setText("Knockbacked: " + this.player.knockback);
             this.mouseCoords.setText(
                 "MouseX: " +
