@@ -1,7 +1,6 @@
 import Phaser from "phaser";
 import io from "socket.io-client";
 import playerAsset from "../../assets/player.png";
-import { Grid } from "matter-js";
 
 class GameScene extends Phaser.Scene {
     constructor() {
