@@ -27,10 +27,11 @@ const onConnect = client => {
     let player = {
         id: client.id,
         position: {
-            x: Math.floor(Math.random() * 500) + 50,
-            y: Math.floor(Math.random() * 500) + 50
+            x: Math.floor(Math.random() * config.worldWidth) + 50,
+            y: Math.floor(Math.random() * config.worldHeight) + 50
         },
-        radius: 16,
+        boost: config.maxBoost,
+        radius: config.playerRadius,
         angle: 0,
         target: {
             x: 0,
@@ -41,6 +42,7 @@ const onConnect = client => {
             y: 0
         },
         knockback: false,
+        boosting: false,
         lastHeartbeat: new Date().getTime()
     };
 
@@ -93,6 +95,16 @@ const onConnect = client => {
         player.angle = body.angle;
     });
 
+    client.on("boost", () => {
+        if (player.boost > 0) {
+            player.boosting = true;
+        }
+    });
+
+    client.on("boostStop", () => {
+        player.boosting = false;
+    });
+
     client.on("disconnect", () => {
         delete players[client.id];
         delete bodies[client.id];
@@ -121,6 +133,8 @@ const movePlayer = player => {
     let tickSpeed = config.speedPerTick;
     if (player.knockback) {
         tickSpeed = config.knockbackSpeedperTick;
+    } else if (player.boosting) {
+        tickSpeed = config.speedPerTick * config.boostMagnitude;
     }
     if (dist > tickSpeed) {
         let ratio = tickSpeed / dist;
@@ -145,6 +159,22 @@ const movePlayer = player => {
     }
 };
 
+const updateBoost = player => {
+    if (player.boosting) {
+        player.boost -= 1;
+        if (player.boost <= 0) {
+            player.boosting = false;
+        }
+    } else {
+        if (player.boost < config.maxBoost) {
+            player.boost += 1 / 10;
+        }
+        if (player.boost > config.maxBoost) {
+            player.boost = config.maxBoost;
+        }
+    }
+};
+
 const tickPlayer = player => {
     if (
         !player ||
@@ -154,6 +184,7 @@ const tickPlayer = player => {
         clients[player.id].emit("kick", "Timed out");
         clients[player.id].disconnect();
     }
+    updateBoost(player);
     movePlayer(player);
 };
 
