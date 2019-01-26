@@ -47,7 +47,7 @@ module.exports = {
             chunksSortMode: "manual",
             hash: true
         }),
-        new CopyWebpackPlugin([{ from: "assets", to: "assets" }]),
+        new CopyWebpackPlugin([{ from: "src/client/assets", to: "assets" }]),
         new WorkboxPlugin.GenerateSW({
             clientsClaim: true,
             skipWaiting: true

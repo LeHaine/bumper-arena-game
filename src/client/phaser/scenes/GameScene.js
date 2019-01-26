@@ -67,9 +67,19 @@ class GameScene extends Phaser.Scene {
                     }
                 });
             });
+
+            this.socket.on("kick", message => {
+                this.player.destroy();
+                this.player = null;
+                this.enemies.getChildren().forEach(enemy => {
+                    enemy.destroy();
+                });
+            });
         });
 
-        this.initDevMode();
+        if (__DEV__) {
+            this.initDevMode();
+        }
     }
 
     update(time, delta) {
@@ -78,7 +88,10 @@ class GameScene extends Phaser.Scene {
                 x: this.input.mousePointer.x,
                 y: this.input.mousePointer.y
             });
-            this.updateDevMode();
+
+            if (__DEV__) {
+                this.updateDevMode();
+            }
         }
     }
 
@@ -88,7 +101,9 @@ class GameScene extends Phaser.Scene {
             .setScale(0.5, 0.5)
             .setRotation(0);
         this.player.setTint(0x1c6ced);
-        this.addSpriteInfoDevMode(this.player, playerInfo);
+        if (__DEV__) {
+            this.addSpriteInfoDevMode(this.player, playerInfo);
+        }
     }
 
     addEnemyPlayer(playerInfo) {
@@ -105,34 +120,43 @@ class GameScene extends Phaser.Scene {
         if (!sprite || !playerInfo) return;
         sprite.setPosition(playerInfo.position.x, playerInfo.position.y);
         sprite.setRotation(playerInfo.angle);
-        this.addSpriteInfoDevMode(sprite, playerInfo);
+
+        if (__DEV__) {
+            this.addSpriteInfoDevMode(sprite, playerInfo);
+        }
     }
 
     initDevMode() {
-        if (!this.developerMode) return;
-        this.coordsText = this.add.text(10, 10);
-        this.velocityText = this.add.text(10, 25);
-        this.rotationText = this.add.text(10, 40);
-        this.knockbackText = this.add.text(400, 40);
+        if (__DEV__) {
+            if (!this.developerMode) return;
+            this.coordsText = this.add.text(10, 10);
+            this.velocityText = this.add.text(10, 25);
+            this.rotationText = this.add.text(10, 40);
+            this.knockbackText = this.add.text(400, 40);
+        }
     }
 
     addSpriteInfoDevMode(sprite, playerInfo) {
-        if (!this.developerMode) return;
-        sprite.velocity = playerInfo.velocity;
-        sprite.knockback = playerInfo.knockback;
+        if (__DEV__) {
+            if (!this.developerMode) return;
+            sprite.velocity = playerInfo.velocity;
+            sprite.knockback = playerInfo.knockback;
+        }
     }
 
     updateDevMode() {
-        if (!this.developerMode) return;
+        if (__DEV__) {
+            if (!this.developerMode) return;
 
-        this.coordsText.setText(
-            "X: " + this.player.x + ", Y: " + this.player.y
-        );
-        this.velocityText.setText(
-            "Velocity: " + JSON.stringify(this.player.velocity)
-        );
-        this.rotationText.setText("Rotation: " + this.player.angle);
-        this.knockbackText.setText("Knockbacked: " + this.player.knockback);
+            this.coordsText.setText(
+                "X: " + this.player.x + ", Y: " + this.player.y
+            );
+            this.velocityText.setText(
+                "Velocity: " + JSON.stringify(this.player.velocity)
+            );
+            this.rotationText.setText("Rotation: " + this.player.angle);
+            this.knockbackText.setText("Knockbacked: " + this.player.knockback);
+        }
     }
 }
 
