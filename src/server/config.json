@@ -7,8 +7,8 @@
     "knockbackMagnitude": 50,
     "boostMagnitude": 3,
     "maxBoost": 100,
-    "worldWidth": 2500,
-    "worldHeight": 2500,
+    "worldWidth": 1000,
+    "worldHeight": 1000,
     "playerRadius": 16,
     "boostDepleteRate": 1,
     "boostRegenRate": 0.2
