@@ -247,38 +247,10 @@ const initPhysicsEngine = () => {
             playerA.knockback = true;
             playerB.knockback = true;
             let angle = Vector.angle(playerA.position, playerB.position);
-            angle = MathUtils.toDegrees(angle);
             let velocity = { x: 0, y: 0 };
 
-            if (angle >= -112 && angle <= -68) {
-                // N
-                velocity.y = 1;
-            } else if (angle > -68 && angle < -22) {
-                // NE
-                velocity.x = -1;
-                velocity.y = 1;
-            } else if (angle >= -22 && angle <= 22) {
-                // E
-                velocity.x = -1;
-            } else if (angle > 22 && angle < 68) {
-                // SE
-                velocity.x = -1;
-                velocity.y = -1;
-            } else if (angle >= 68 && angle <= 112) {
-                // S
-                velocity.y = -1;
-            } else if (angle > 112 && angle < 158) {
-                // SW
-                velocity.x = 1;
-                velocity.y = -1;
-            } else if (angle >= 158 || angle <= -158) {
-                // W
-                velocity.x = 1;
-            } else if (angle > -158 && angle < -112) {
-                // NW
-                velocity.y = 1;
-                velocity.x = 1;
-            }
+            velocity.x = -Math.cos(angle);
+            velocity.y = -Math.sin(angle);
 
             playerA.target = Vector.add(
                 playerA.position,
