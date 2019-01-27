@@ -188,6 +188,18 @@ const sendClientUpdates = () => {
     });
 };
 
+const normalizeTarget = target => {
+    if (target.x < config.playerRadius) {
+        target.x = config.playerRadius;
+    } else if (target.x > config.worldWidth - config.playerRadius) {
+        target.x = config.worldWidth - config.playerRadius;
+    }
+    if (target.y < config.playerRadius) {
+        target.y = config.playerRadius;
+    } else if (target.y > config.worldHeight - config.playerRadius) {
+        target.y = config.worldHeight - config.playerRadius;
+    }
+};
 const initPhysicsEngine = () => {
     world.gravity.y = 0;
     world.gravity.x = 0;
@@ -276,6 +288,9 @@ const initPhysicsEngine = () => {
                 playerB.position,
                 Vector.mult(Vector.neg(velocity), config.knockbackMagnitude)
             );
+
+            normalizeTarget(playerA.target);
+            normalizeTarget(playerB.target);
         });
     };
 
