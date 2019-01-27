@@ -61,7 +61,6 @@ const onConnect = client => {
 
     player.position = body.position;
     player.velocity = body.velocity;
-
     World.add(world, body);
 
     playerCount++;
@@ -145,18 +144,6 @@ const movePlayer = player => {
         Body.setVelocity(body, { x: 0, y: 0 });
         player.knockback = false;
     }
-
-    if (player.position.x > config.worldWidth) {
-        player.position.x = config.worldWidth;
-    } else if (player.position.x < 0) {
-        player.position.x = 0;
-    }
-
-    if (player.position.y > config.worldHeight) {
-        player.position.y = config.worldHeight;
-    } else if (player.position.y < 0) {
-        player.position.y = 0;
-    }
 };
 
 const updateBoost = player => {
@@ -202,9 +189,41 @@ const sendClientUpdates = () => {
 };
 
 const initPhysicsEngine = () => {
-    engine.world.gravity.y = 0;
-    engine.world.gravity.x = 0;
-
+    world.gravity.y = 0;
+    world.gravity.x = 0;
+    const leftWall = Bodies.rectangle(
+        -50,
+        config.worldHeight / 2,
+        100,
+        config.worldHeight,
+        {
+            isStatic: true
+        }
+    );
+    const rightWall = Bodies.rectangle(
+        config.worldWidth + 50,
+        config.worldHeight / 2,
+        100,
+        config.worldHeight,
+        { isStatic: true }
+    );
+    const topWall = Bodies.rectangle(
+        config.worldWidth / 2,
+        -50,
+        config.worldWidth,
+        100,
+        {
+            isStatic: true
+        }
+    );
+    const bottomWall = Bodies.rectangle(
+        config.worldWidth / 2,
+        config.worldHeight + 50,
+        config.worldWidth,
+        100,
+        { isStatic: true }
+    );
+    World.add(world, [leftWall, rightWall, topWall, bottomWall]);
     const handleCollision = event => {
         let pairs = event.pairs;
         pairs.forEach(pair => {
