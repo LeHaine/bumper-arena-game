@@ -252,13 +252,30 @@ const initPhysicsEngine = () => {
             velocity.x = -Math.cos(angle);
             velocity.y = -Math.sin(angle);
 
+            let velocityA = velocity;
+            let velocityB = velocity;
+
+            if (playerA.boosting) {
+                velocityB = Vector.mult(
+                    velocityB,
+                    config.boostKnockbackMagnitude
+                );
+            }
+
+            if (playerB.boosting) {
+                velocityA = Vector.mult(
+                    velocityA,
+                    config.boostKnockbackMagnitude
+                );
+            }
+
             playerA.target = Vector.add(
                 playerA.position,
-                Vector.mult(velocity, config.knockbackMagnitude)
+                Vector.mult(velocityA, config.knockbackMagnitude)
             );
             playerB.target = Vector.add(
                 playerB.position,
-                Vector.mult(Vector.neg(velocity), config.knockbackMagnitude)
+                Vector.mult(Vector.neg(velocityB), config.knockbackMagnitude)
             );
 
             normalizeTarget(playerA.target);

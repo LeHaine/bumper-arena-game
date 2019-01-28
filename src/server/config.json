@@ -3,13 +3,14 @@
     "clientUpdateInterval": 40,
     "maxHeartbeatInterval": 5000,
     "speedPerTick": 3,
-    "knockbackSpeedperTick": 5,
+    "knockbackSpeedperTick": 9,
     "knockbackMagnitude": 50,
     "boostMagnitude": 3,
+    "boostDepleteRate": 1,
+    "boostRegenRate": 0.2,
+    "boostKnockbackMagnitude": 3,
     "maxBoost": 100,
     "worldWidth": 1000,
     "worldHeight": 1000,
-    "playerRadius": 16,
-    "boostDepleteRate": 1,
-    "boostRegenRate": 0.2
+    "playerRadius": 16
 }

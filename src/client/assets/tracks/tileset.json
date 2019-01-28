@@ -1,0 +1,29 @@
+[
+    {
+        "source": "../sprites/finish-line-vert.png"
+    },
+    {
+        "source": "../sprites/finish-line-horiz.png"
+    },
+    {
+        "source": "../sprites/terrainTile6.png.png"
+    },
+    {
+        "source": "../sprites/roadTile1.png"
+    },
+    {
+        "source": "../sprites/roadTile2.png"
+    },
+    {
+        "source": "../sprites/roadTile6.png"
+    },
+    {
+        "source": "../sprites/roadTile7.png"
+    },
+    {
+        "source": "../sprites/roadTile8.png"
+    },
+    {
+        "source": "../sprites/roadTile27.png"
+    }
+]
