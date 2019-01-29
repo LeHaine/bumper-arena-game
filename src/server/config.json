@@ -10,7 +10,7 @@
     "boostRegenRate": 0.2,
     "boostKnockbackMagnitude": 3,
     "maxBoost": 100,
-    "worldWidth": 1000,
-    "worldHeight": 1000,
-    "playerRadius": 16
+    "worldWidth": 1920,
+    "worldHeight": 1920,
+    "playerRadius": 8
 }

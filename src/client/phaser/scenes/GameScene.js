@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import io from "socket.io-client";
-import playerAsset from "../../assets/player.png";
+import trackTileset from "../../assets/tracks/track_tileset.png";
+import track0 from "../../../shared/tracks/0.json";
 
 class GameScene extends Phaser.Scene {
     constructor() {
@@ -17,10 +18,15 @@ class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image("player", playerAsset);
+        this.load.image("track_tileset", trackTileset);
+        this.load.tilemapTiledJSON("track_0", track0);
     }
 
     create() {
+        this.track = this.make.tilemap({ key: "track_0" });
+        const tileset = this.track.addTilesetImage("track_tileset");
+        this.trackLayer = this.track.createStaticLayer(0, tileset, 0, 0);
+        this.decorLayer = this.track.createStaticLayer(1, tileset, 0, 0);
         this.socket = io("http://localhost:8080");
         this.enemies = this.add.group();
         this.socket.on("connect", () => {
@@ -36,13 +42,7 @@ class GameScene extends Phaser.Scene {
                     config.worldWidth + 1000,
                     config.worldHeight + 1000
                 );
-                const grid = this.add.grid(
-                    config.worldWidth / 2,
-                    config.worldHeight / 2,
-                    config.worldWidth,
-                    config.worldHeight
-                );
-                grid.depth = -10;
+                this.cameras.main.setZoom(2);
             });
             this.socket.on("newPlayer", playerInfo => {
                 this.addPlayer(playerInfo);
@@ -117,10 +117,13 @@ class GameScene extends Phaser.Scene {
 
     addPlayer(playerInfo) {
         this.player = this.add
-            .sprite(playerInfo.position.x, playerInfo.position.y, "player")
-            .setScale(0.5, 0.5)
+            .circle(
+                playerInfo.position.x,
+                playerInfo.position.y,
+                playerInfo.radius,
+                0x1c6ced
+            )
             .setRotation(0);
-        this.player.setTint(0x1c6ced);
         this.cameras.main.startFollow(this.player);
         if (__DEV__) {
             this.addSpriteInfoDevMode(this.player, playerInfo);
@@ -129,11 +132,14 @@ class GameScene extends Phaser.Scene {
 
     addEnemyPlayer(playerInfo) {
         const enemy = this.add
-            .sprite(playerInfo.position.x, playerInfo.position.y, "player")
-            .setScale(0.5, 0.5)
+            .circle(
+                playerInfo.position.x,
+                playerInfo.position.y,
+                playerInfo.radius,
+                0xe50404
+            )
             .setRotation(0);
         enemy.id = playerInfo.id;
-        enemy.setTint(0xe50404);
         this.enemies.add(enemy);
     }
 
@@ -147,6 +153,13 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    getMouseWorldPosition() {
+        return this.game.input.activePointer.positionToCamera(
+            this.cameras.main
+        );
+    }
+
+    /***** DEV mode methods only *****/
     initDevMode() {
         if (__DEV__) {
             if (!this.developerMode) return;
@@ -206,12 +219,6 @@ class GameScene extends Phaser.Scene {
                 "Mouse: " + JSON.stringify(this.getMouseWorldPosition())
             );
         }
-    }
-
-    getMouseWorldPosition() {
-        return this.game.input.activePointer.positionToCamera(
-            this.cameras.main
-        );
     }
 }
 
