@@ -4,7 +4,6 @@ const server = require("http").Server(app);
 const io = require("socket.io").listen(server);
 const Matter = require("matter-js");
 const logger = require("./logger");
-const MathUtils = require("../shared/MathUtils");
 const config = require("./config.json");
 
 const Engine = Matter.Engine;

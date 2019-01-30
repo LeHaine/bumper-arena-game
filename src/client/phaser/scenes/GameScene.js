@@ -159,7 +159,7 @@ class GameScene extends Phaser.Scene {
         );
     }
 
-    /***** DEV mode methods only *****/
+    /* DEV mode methods only */
     initDevMode() {
         if (__DEV__) {
             if (!this.developerMode) return;
